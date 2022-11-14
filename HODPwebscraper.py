@@ -6,24 +6,9 @@ import time
 import csv
 
 
-def percent_extractor(bar):
-    #bar = bar.get_attribute("alt")
-    bar = bar.replace("%", "")
-    for i in bar.split():
-        if i.isdigit():
-            return i
-
-
-def name_reverser(name):
-    i = name.find(",")
-    if i == -1:
-        return name
-    return name[i+2:] + " " + name[:i]
-
-
 # CONSTANTS
-FIRST_DEPARTMENT = 41
-FIRST_CLASS = 2
+FIRST_DEPARTMENT = 0
+FIRST_CLASS = 0
 
 options = webdriver.ChromeOptions()
 options.add_experimental_option('excludeSwitches', ['enable-logging'])
@@ -35,7 +20,7 @@ driver.get("https://qreports.fas.harvard.edu/browse/index")
 # Wait until we are on the first page of the Q guide.
 element = WebDriverWait(driver, 40).until(
     EC.presence_of_element_located((By.ID, "bluecourses")))
-time.sleep(5)
+time.sleep(3)
 
 # Get a list of all the deparmtent buttons.
 departments = driver.find_elements(
@@ -118,6 +103,17 @@ for i in range(FIRST_DEPARTMENT, len(departments)):  # Iterate over the departme
         except:
             recommendation = "None"
         try:
+            enrollment_tbody = driver.find_element(By.XPATH, "/html/body/article/div[8]/div[2]/div/div/table[2]/tbody")
+            enrollment_rows = enrollment_tbody.find_elements(By.TAG_NAME, "tr")
+
+            enrollment_reasons = {}
+            for row in enrollment_rows:
+                enrollment_reason = row.find_element(By.TAG_NAME, "th").text
+                enrollment_count = row.find_element(By.TAG_NAME, "td").text
+                enrollment_reasons[enrollment_reason] = enrollment_count
+        except:
+            enrollment_reasons = "None"
+        try:
             comments_tbody = driver.find_element(
                 By.XPATH, "//table[contains(@role, 'presentation')]")
             comments = comments_tbody.find_elements(By.TAG_NAME, "td")
@@ -140,7 +136,7 @@ for i in range(FIRST_DEPARTMENT, len(departments)):  # Iterate over the departme
         with open('q-scores.csv', 'a', newline='', encoding="utf-8") as f:
             thewriter = csv.writer(f)
             thewriter.writerow(["Spring 2022", department_title, str(title), str(workload_mean), str(
-                workload_std), str(rating), str(responses), str(enrollment), str(recommendation), str(comments_list)])
+                workload_std), str(rating), str(responses), str(enrollment), str(recommendation), str(enrollment_reasons), str(comments_list)])
             f.close()
 
         driver.close()
